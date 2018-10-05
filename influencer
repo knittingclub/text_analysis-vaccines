@@ -1,0 +1,131 @@
+---
+title: "vaccination_influencer"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Find out who are the most influential spokespeople for #vaccine regarding the anti-vax controversy in the US. 
+Work in progress - pending the collection of more tweets and further refinements.
+
+```{r}
+library(rtweet)
+library(igraph)
+library(tidyverse)
+library(tidytext)
+library(hrbrthemes)
+library(ggraph)
+
+```
+
+```{r}
+####### credentials here
+```
+
+## collecting tweets. Needs to be expanded to more tweets and filtered to relevant topics
+
+```{r}
+vaccine_tweets<-search_tweets("#vaccine", n=18000, 
+                              include_rts=T, geocode = lookup_coords("usa"))
+```
+
+
+# retweet network
+```{r}
+rt_g <- filter(vaccine_tweets, retweet_count > 0) %>% 
+  select(screen_name, mentions_screen_name) %>%
+  unnest(mentions_screen_name) %>% 
+  filter(!is.na(mentions_screen_name)) %>% 
+  graph_from_data_frame() 
+
+summary(rt_g)
+```
+
+```{r}
+ggplot(data_frame(y=degree_distribution(rt_g), x=1:length(y))) +
+  geom_segment(aes(x, y, xend=x, yend=0), color="blue") +
+  scale_y_continuous(expand=c(0,0), trans="sqrt") +
+  labs(x="Degree", y="Density (sqrt scale)", title="Degree Distribution") 
+```
+
+```{r}
+i=20 #filter out those too low
+V(rt_g)$node_label <- unname(ifelse(degree(rt_g)[V(rt_g)] > i, names(V(rt_g)), "")) 
+V(rt_g)$node_size <- unname(ifelse(degree(rt_g)[V(rt_g)] > i, degree(rt_g), 0)) 
+```
+
+
+```{r}
+ggraph(rt_g, layout = 'linear', circular = TRUE) + 
+  geom_edge_arc(edge_width=0.125, aes(alpha=..index..)) +
+  geom_node_label(aes(label=node_label, size=node_size),
+                  label.size=0, fill="#ffffff66", segment.colour="green",
+                  color="blue", repel=TRUE, fontface="bold") +
+  coord_fixed() +
+  scale_size_area(trans="sqrt") + 
+  theme_minimal()
+```
+
+
+## top hashtags used concurrently with #vaccine
+```{r}
+vaccine_tweets %>%
+  select(hashtags) %>% 
+  unnest() %>% 
+  mutate(hashtags = tolower(hashtags)) %>% 
+  count(hashtags, sort=TRUE) %>% 
+  filter(hashtags != "vaccine") %>% 
+  top_n(10)
+```
+
+## summing followers of followers to gauge primary influence
+```{r}
+primary_influence <- function(user, trans=c("log10", "identity")) {
+  
+  user <- user[1]
+  trans <- match.arg(tolower(trimws(trans[1])), c("log10", "identity"))
+  
+  user_info <- lookup_users(user)
+  
+  user_followers <- get_followers(user_info$user_id)
+  uf_details <- lookup_users(user_followers$user_id)
+  
+  primary_influence <- scales::comma(sum(c(uf_details$followers_count, user_info$followers_count)))
+  
+  filter(uf_details, followers_count > 0) %>% 
+    ggplot(aes(followers_count)) +
+    geom_density(aes(y=..count..), 
+                 color="lightslategray",
+                 fill="lightslategray",
+                 alpha=2/3, size=1) +
+    scale_x_continuous(expand=c(0,0), trans="log10", labels=scales::comma) +
+    scale_y_comma() +
+    labs(
+      x="Number of Followers of Followers (log scale)", 
+      y="Number of Followers") +
+    theme_minimal()-> gg
+  
+  print(gg)
+  
+  return(invisible(list(user_info=user_info, follower_details=uf_details)))
+  
+}
+```
+
+```{r}
+primary_influence(user)
+```
+
+```{r}
+primary_influence('vaccineepidemic')
+```
+
+```{r}
+primary_influence('VaccineXchange')
+```
+
+### work in progress
