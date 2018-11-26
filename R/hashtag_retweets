@@ -12,8 +12,6 @@ library(gridExtra)
 library(grid)
 #network
 library(igraph)
-library(ggraph)
-library(textnets)
 ```
 
 ```{r}
@@ -81,21 +79,5 @@ n1<-hash_unnest %>%
 
 title=textGrob("Retweet distribution by hastag", gp=gpar(fontface="bold"))
 grid.arrange(p1,n1, ncol=2, top=title)
-
-```
-
-```{r}
-top_10_pos_hash <- hash_retweet %>% arrange(-Positive) %>% head(10)
-top_10_neg_hash <- hash_retweet %>% arrange(-Negative) %>% head(10) 
-
-hash_unnest %>% 
-  ggplot(aes(y=as.factor(hashtag),
-                      x=retweet_count)) +
-  geom_density_ridges(data=filter(hash_unnest, hashtag %in% top_10_pos_hash$hashtag),
-                      fill='red',alpha=0.5) + 
-  geom_density_ridges(data=filter(hash_unnest, hashtag %in% top_10_neg_hash$hashtag),
-                      fill='blue',alpha=0.5) + 
-  theme_minimal() +
-  labs(title = 'Retweet distribution by most used hashtag')
 
 ```
