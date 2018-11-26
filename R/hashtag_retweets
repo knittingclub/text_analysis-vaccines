@@ -1,0 +1,101 @@
+```{r}
+#twitter
+library(rtweet)
+#text
+library(tidytext)
+#library(hrbrthemes)
+library(tidyverse)
+library(dplyr)
+#plot
+library(ggridges)
+library(gridExtra)
+library(grid)
+#network
+library(igraph)
+library(ggraph)
+library(textnets)
+```
+
+```{r}
+tweets <- read.csv("~/git_repo/mids/text_analysis/vax_proj/tweets.csv",  stringsAsFactors=FALSE)
+users <- read.csv("~/git_repo/mids/text_analysis/vax_proj/Users.csv",  stringsAsFactors=FALSE)
+```
+
+
+
+```{r}
+users %>%
+  group_by(Verdict) %>%
+  summarize(`25%`=quantile(followers_count, probs=0.25),
+            `50%`=quantile(followers_count, probs=0.5),
+            `75%`=quantile(followers_count, probs=0.75),
+            avg=mean(followers_count),
+            n=n())
+```
+
+
+
+```{r}
+users %>%
+  select(user, followers_count, Verdict) %>%
+  ggplot(aes(followers_count)) + 
+  geom_density(aes(fill=Verdict, alpha=0.7)) + scale_x_log10() +
+  theme_minimal()
+```
+
+#get hashtag of pro/anti groups
+
+```{r}
+hashtags <- tweets %>% select(hashtags, user_grouping, retweet_count) 
+
+hash_unnest<- hashtags %>% 
+  filter(nchar(hashtags)>=1) %>%
+  mutate(hashtag = strsplit(hashtags," ")) %>% 
+  unnest() %>%
+  mutate(hashtag=tolower(hashtag))
+
+hash_retweet<-hash_unnest%>%
+  group_by(hashtag, user_grouping) %>%
+  summarize(retweet=median(retweet_count)) %>%
+  spread(user_grouping, retweet)
+
+```
+
+```{r}
+top_10_pos_hash <- hash_retweet %>% arrange(-Positive) %>% head(10)
+top_10_neg_hash <- hash_retweet %>% arrange(-Negative) %>% head(10) 
+
+p1<-hash_unnest %>% 
+  filter(hashtag %in% top_10_pos_hash$hashtag) %>%
+  ggplot(aes(y=hashtag, x=retweet_count)) +
+  geom_density_ridges(fill='blue', alpha=0.3) + 
+  theme_minimal() + theme(plot.title = element_text( size=12))+
+  labs(title = 'Positive group') 
+
+n1<-hash_unnest %>% 
+  filter(hashtag %in% top_10_neg_hash$hashtag) %>%
+  ggplot(aes(y=hashtag, x=retweet_count)) +
+  geom_density_ridges( fill='red', alpha=0.3) + 
+  theme_minimal() + theme(plot.title = element_text(size=12))+
+  labs(title = 'Negative group') 
+
+title=textGrob("Retweet distribution by hastag", gp=gpar(fontface="bold"))
+grid.arrange(p1,n1, ncol=2, top=title)
+
+```
+
+```{r}
+top_10_pos_hash <- hash_retweet %>% arrange(-Positive) %>% head(10)
+top_10_neg_hash <- hash_retweet %>% arrange(-Negative) %>% head(10) 
+
+hash_unnest %>% 
+  ggplot(aes(y=as.factor(hashtag),
+                      x=retweet_count)) +
+  geom_density_ridges(data=filter(hash_unnest, hashtag %in% top_10_pos_hash$hashtag),
+                      fill='red',alpha=0.5) + 
+  geom_density_ridges(data=filter(hash_unnest, hashtag %in% top_10_neg_hash$hashtag),
+                      fill='blue',alpha=0.5) + 
+  theme_minimal() +
+  labs(title = 'Retweet distribution by most used hashtag')
+
+```
