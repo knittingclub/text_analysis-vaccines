@@ -1,0 +1,397 @@
+---
+title: "Anti-Vac: Dictionary Analysis"
+author: "Avani Gupta"
+date: "11/26/2018"
+output:
+  pdf_document: default
+---
+
+
+```{r setup, include=FALSE}
+chooseCRANmirror(graphics=FALSE, ind=1)
+
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+#1. Load, Clean, Apply Dictionaries
+
+```{r eval=TRUE, echo=TRUE, message=FALSE}
+#load grouping data and packages
+#install.packages("quanteda")
+#install.packages('readtext')
+library(quanteda)
+library(stringr)
+library(plyr)
+library(dplyr)
+require(readtext)
+```
+
+## 1. a. Load & Clean DataSet
+```{r eval=TRUE, echo=TRUE, message=FALSE}
+#### LOADING
+fullVac <- readtext("~/Desktop/Fall 2018/Text Scrap/Anti Vac/Final Dataset - Tweets.csv")
+
+
+#### CLEANING
+#remove useless columns
+fullVac$user_grouping.1 <- NULL
+fullVac$doc_id <- NULL
+colnames(fullVac)[colnames(fullVac)=="text"] <- "doc_id"
+
+
+#remove @s from fullvac
+fullVac$tweet <-gsub("\\@[a-z,A-Z,0-9,_]+","",fullVac$tweet)
+
+#remove strange characters
+fullVac$tweet <-gsub("[#¤º-»«Ã¢ùâ¬Åäò¥¡Â¿°£·©äôË¦¼¹¸±???ð\u201E\u201F\u0097\u0083\u0082\u0080\u0081\u0090\u0095\u009f\u0098\u008d\u008b\u0089\u0087\u008a¦??.]+",
+                     "",fullVac$tweet)
+#remove links
+fullVac$tweet <-gsub("?(f|ht)(tp)(s?)(://)(.*)[.|/](.*)",
+                     "",fullVac$tweet)
+
+#lower all text
+fullVac$tweet <-tolower(fullVac$tweet)
+```
+
+## 1. b. Create Corpus
+```{r}
+##################### CORPUS
+#create corpus
+fullVac_corpus <- corpus(fullVac$tweet)
+
+#explore data
+summary(fullVac_corpus)
+texts(fullVac_corpus)[5]
+```
+
+
+#2. Dictionary Analysis
+
+## 2.a. Anaylse Tweet Word Counts
+```{r}
+######################### COUNT WORDS
+library(tidyverse)
+library(tidytext)
+library(dplyr)
+
+#create corpus
+wordVac <- dictVac %>%
+  select(user,tweet) %>%
+  unnest_tokens("word", tweet)
+
+#count words
+wordCount <- wordVac %>%
+  count(word) %>%
+  arrange(desc(n))
+
+#write to excel
+#library(openxlsx)
+#write.xlsx(wordCount, '~/Desktop/Fall 2018/Text Scrap/Anti Vac/', sheetName = "Sheet1",
+          # col.names = TRUE, row.names = TRUE, append = FALSE)
+
+```
+
+## 2.b. Create Dictionaries
+```{r}
+##################### DICTIONARIES
+#create dictionary
+
+
+dict2 <- dictionary(list( Communication = c('activism', 'exposing', 'propaganda', 'propagating', 'fakenews', 'fakenewsmedia',
+                                            'activist', 'advocacy', 'advocate', 'advocating', 'agenda', 'confirmed',
+                                            'confirms', 'contrary', 'fail', 'failed', 'failure', 'contraindications',
+                                            'published', 'adjuvant', 'adjuvanted', 'admitted', 'advice', 'announce',
+                                            'announced', 'announces', 'answer', 'answers', 'agree', 'campaign', 'campaigns',
+                                            'opinions', 'outreach', 'persistent', 'asked', 'attached', 'backlash',
+                                            'beinformed', 'concede', 'conclude', 'conference', 'confirm', 'correlation',
+                                            'discuss', 'disputed', 'emergence', 'explained', 'help', 'hep', 'involved',
+                                            'please', 'provocateur', 'mainstream', 'nyt', 'coverage', 'covering', 'skeptical',
+                                            'mainstream media', 'media', 'news', 'easy', 'quick', 'spread', 'stop', 'talk to',
+                                            'book', 'recommendation', 'recommendations', 'recommended'),
+                          Conspiracy = c('big pharma', 'bigpharma', 'cdc', 'conspiracy', 'evil', 'government', 'justice',
+                                         'pharma', 'ploy', 'contaminated', 'drug', 'outbreak', 'reaction', 'tactics', 'betray',
+                                         'consider', 'dishonesty', 'lies', 'misinformation', 'scam', 'scandal', 'seeking',
+                                         'sheep', 'side effect', 'skepticism', 'stop lies', 'trust', 'unproven', 'untested',
+                                         'zealot', 'falseflag', 'falsifying', 'bigpharmafraud', 'pharmafraud', 'cdc\'s',
+                                         'cdcflu', 'cdcfraud', 'cdcwhistleblower', 'ceo', 'crimeofthecentury',
+                                         'crimesagainstchildren', 'crimesagainsthumanity', 'embroiled', 'myths', 'compensated',
+                                         'compensation', 'blame', 'claim', 'collusion', 'companies', 'company', 'corruption',
+                                         'coverup', 'flintwatercrisis', 'followthemoney', 'fraud', 'scandals', 'zealots',
+                                         'manufacturer', 'manufacturers', 'merck', 'money', 'officials', 'exposing',
+                                         'propaganda', 'propagating', 'fakenews', 'fakenewsmedia', 'eugenics',
+                                         'vaccinetyranny', 'flushotscam', 'medicaltyranny', 'health4sale', 'sideeffects'),
+                          Danger = c('damage', 'damaged', 'danger', 'dangerous', 'virulence', 'critical', 'dangers',
+                                     'appalling', 'hazardous', 'assault', 'attacked', 'backfire', 'backfired', 'childabusers',
+                                     'complications', 'consequences', 'devastating', 'kidnapping', 'liability', 'lost',
+                                     'problematic', 'terrible', 'terrifying', 'terrorizes', 'tragic', 'trouble', 'unsafe',
+                                     'victim', 'victims', 'contagious', 'injure', 'injured', 'injuredarmy', 'injuries',
+                                     'injury', 'medicalkidnap', 'healthrisks', 'violation'),
+                          Government = c('fda', 'votered', 'voteredtosaveamerica', 'administration', 'lawmakers', 'lawsuit',
+                                         'lawyers', 'mandates', 'obstruction', 'democrat', 'law', 'republican', 'agency',
+                                         'banned', 'crackdown', 'economic', 'governments', 'indict', 'industry', 'political',
+                                         'trump', 'voters', 'big pharma', 'bigpharma', 'cdc', 'conspiracy', 'evil',
+                                         'government', 'justice', 'pharma', 'ploy'),
+                          Death = c('grief', 'grieving', 'death', 'dies', 'dying', 'deadly', 'deaths', 'mortality', 'kill',
+                                    'killed', 'dead', 'died', 'terminal'),
+                          Family = c('mothers', 'parent', 'parentalrights', 'parenting', 'parents', 'parentschoice', 'birth',
+                                     'child', 'childhood', 'children', 'community', 'families', 'home', 'ivax2protect', 'kids',
+                                     'babies', 'baby', 'family', 'stoppoisoningourchildren', 'providers', 'childrenshealth',
+                                     'pediatric', 'pediatricians', 'pregnancy', 'pregnant', 'pregnantwomen', 'protects'),
+                          Affect = c('prevent', 'preventable', 'preventative', 'prevented', 'preventing', 'prevents',
+                                     'affecting', 'effect', 'effects', 'efficacy', 'causes', 'likelihood', 'link', 'linked',
+                                     'vital', 'damage', 'damaged', 'danger', 'dangerous'),
+                          Choice = c('question', 'questionable', 'questions', 'mybodymychoice', 'choice', 'choices',
+                                     'alternative', 'avoid', 'choosing', 'consent', 'consideration', 'considered', 'freedom',
+                                     'resistance', 'vaccinefreedom', 'healthfreedom', 'available', 'get'),
+                          Promotion = c('readthebook', 'readtheinsert', 'readtheinserts', 'available', 'get', 'book',
+                                        'recommendation', 'recommendations', 'recommended', 'free flu shot', 'get vaccine',
+                                        'get your vaccine', 'shot clinic', 'awareness', 'effective', 'promotion', 'raise',
+                                        'recommend', 'appointment', 'appointments', 'encourage', 'encouraged',
+                                        'makinglifebetter', 'benefit', 'benefits', 'better', 'boosting', 'forjudeforeveryone',
+                                        'free', 'herd', 'hoosierherd', 'hoosiersvaccinate', 'important', 'increase', 'join',
+                                        'worldfoodday', 'activist', 'advocacy', 'advocate', 'advocating', 'agenda', 'tactics',
+                                        'votered', 'voteredtosaveamerica', 'getimmunized', 'getvaccinated', 'antipoverty',
+                                        'antivaccine', 'antivax', 'antivaxxers', 'vaccinessavelives', 'vaccineswork',
+                                        'endautismnow', 'fightflu', 'fighttheflunj', 'firstdonoharm', 'flupreventionweek',
+                                        'painless', 'worldpolioday', 'abolishcps'),
+                          Awareness = c('resistance', 'skeptical', 'underlying', 'undermined', 'criticism', 'information',
+                                        'informed', 'informedconsent', 'educate', 'educated', 'education', 'enough',
+                                        'enoughisenough', 'epicfail', 'ethics', 'know', 'knows', 'knowtherisks',
+                                        'learntherisk', 'misinform', 'misinformed', 'notbornwithit', 'notnormal', 'aware',
+                                        'check', 'concern', 'concerns', 'extreme', 'humanrights', 'understand', 'worried',
+                                        'worry', 'prevent', 'preventable', 'preventative', 'prevented', 'preventing',
+                                        'prevents', 'question', 'questionable', 'questions', 'activism', 'warning', 'warns',
+                                        'vaccinereactions', 'vaccinerisks', 'vaccinesafety', 'vaccinesdangers',
+                                        'vaccinesmakeadults', 'vaccinetruth', 'autismawareness', 'autismawarenessmonth',
+                                        'brainhealth', 'readthebook', 'readtheinsert', 'readtheinserts', 'statistics'),
+                          Trust = c('sideeffects', 'violation', 'protects', 'anti', 'belief', 'believe', 'believes',
+                                    'believing', 'betrayed', 'bias', 'cowardice', 'defense', 'denial', 'expert', 'expertise',
+                                    'experts', 'professional', 'professionals', 'qualification', 'seektruth', 'training',
+                                    'truth', 'underlying', 'undermined', 'confirmed', 'confirms', 'contrary', 'fail', 'failed',
+                                    'failure', 'contraindications', 'published', 'betray', 'consider', 'dishonesty', 'lies',
+                                    'misinformation', 'scam', 'scandal', 'seeking', 'sheep', 'side effect', 'skepticism',
+                                    'stop lies', 'trust', 'unproven', 'untested', 'zealot', 'falseflag', 'falsifying', 'fear',
+                                    'safe', 'safety', 'safetystudy', 'adverse', 'confidence', 'increases risk', 'ineffective',
+                                    'lower', 'lower your risk', 'prevention', 'protect', 'protection', 'risk', 'risks',
+                                    'toxic', 'save', 'awareness', 'effective', 'promotion', 'raise', 'recommend', 'reports',
+                                    'researchers', 'review', 'tested', 'testing'),
+                          Research = c('statistics', 'research', 'reports', 'researchers', 'review', 'tested', 'testing',
+                                       'analysis', 'biotechnology', 'data', 'lab', 'laboratories', 'labradorians',
+                                       'microorganisms', 'particles', 'pathologically', 'pathology', 'pesticides', 'bacteria',
+                                       'conducted', 'develop', 'discovered', 'fact', 'facts', 'factually', 'findings',
+                                       'investigate', 'science', 'scientific', 'scientifically', 'scientist', 'scientists',
+                                       'studies', 'study'),
+                          Health = c('vaccinereactions', 'vaccinerisks', 'vaccinesafety', 'vaccinesdangers',
+                                     'vaccinesmakeadults', 'vaccinetruth', 'autismawareness', 'autismawarenessmonth',
+                                     'brainhealth', 'vaccinefreedom', 'healthfreedom', 'easy', 'quick', 'spread', 'stop', 
+                                     'talk to', 'eugenics', 'vaccinetyranny', 'flushotscam', 'medicaltyranny', 'health4sale',
+                                     'contagious', 'injure', 'injured', 'injuredarmy', 'injuries', 'injury', 'medicalkidnap',
+                                     'healthrisks', 'dead', 'died', 'terminal', 'providers', 'childrenshealth', 'pediatric',
+                                     'pediatricians', 'pregnancy', 'pregnant', 'pregnantwomen', 'lifelong', 'vaccine injury',
+                                     'vaccinedamage', 'vaccinedangers', 'vaccinedisabledchild', 'vaccineinducedbraininjury',
+                                     'vaccineinjured', 'vaccineinjury', 'vaccineinjuryawareness', 'vaccinekill',
+                                     'vaccinereactionsarereal', 'vaccinesareafraud', 'vaccinesarepoison',
+                                     'vaccinescauseautism', 'vaccinesharm', 'vaccineskill', 'braindamage', 'braininflammation',
+                                     'getimmunized', 'getvaccinated', 'antipoverty', 'antivaccine', 'antivax', 'antivaxxers',
+                                     'vaccinessavelives', 'vaccineswork', 'endautismnow', 'fightflu', 'fighttheflunj',
+                                     'firstdonoharm', 'flupreventionweek', 'painless', 'worldpolioday', 'abolishcps',
+                                     'adverse', 'confidence', 'increases risk', 'ineffective', 'lower', 'lower your risk',
+                                     'prevention', 'protect', 'protection', 'risk', 'risks', 'toxic', 'save', 'acne', 
+                                     'acute', 'acuteflaccidmyelitis', 'adhd', 'allergies', 'aluminium', 'aluminum',
+                                     'alzheimers', 'anthrax', 'antibiotics', 'antibodies', 'antigen', 'antivaxxerskill',
+                                     'autism', 'disease', 'epilepsy', 'herd immunity', 'immunity', 'immunization', 
+                                     'immunize', 'induce', 'infection', 'malaria', 'measles', 'mmr', 'polio', 'shingles',
+                                     'vaccinate', 'vaccinated', 'vaccinating', 'vaccination', 'vaccinations', 'vaccine',
+                                     'vaccines', 'vaers', 'vax', 'vaxxed', 'vaxxers', 'virus', 'afm', 'asthma', 'autistic',
+                                     'autoimmune', 'biometric', 'biopsy', 'bootoflu', 'brain', 'cancer', 'cancers',
+                                     'cerebralpalsy', 'cervical', 'cervicalcancer', 'chickenpox', 'clinic', 'clinical',
+                                     'clinics', 'coma', 'congenital', 'cough', 'criticalcare', 'dementia', 'diseases', 
+                                     'dna', 'doctor', 'doctor\'s', 'doctors', 'dr', 'drugs', 'ebola', 'eczema',
+                                     'encephaliticcry', 'encephalopathy', 'epidemic', 'epidemiologist', 'flaccid', 
+                                     'flu', 'flu\'s', 'flucrew', 'flufighter', 'flujab', 'flukills', 'flumist', 
+                                     'fluseason', 'flushot', 'flushots', 'flushotselfiedal', 'flutip', 'fluvaccine', 
+                                     'fluvax', 'globalhealth', 'h1n1', 'heartache', 'hepatitis', 'hepatitisa', 'hepatitisb',
+                                     'hepb', 'hhs', 'hiv', 'hospital', 'hospitalization', 'hospitalizations', 'hospitalized',
+                                     'hpv', 'hpvvaccine', 'immune', 'immunisation', 'immunizations', 'immunized', 'immunizing',
+                                     'immunotherapy', 'infected', 'infections', 'infectious', 'influenza', 'influenzaa',
+                                     'madcowdisease', 'malnutrition', 'md', 'mealses', 'medical', 'medically', 'medicine',
+                                     'medicinegrandrounds', 'meningitis', 'mosquitoes', 'mutate', 'mutations', 'myautism',
+                                     'naturalhealth', 'naturalimmunity', 'naturalmedicine', 'neurovirulence', 'nurse',
+                                     'nurseries', 'nurses', 'nursing', 'nutrients', 'nutrition', 'overdoses', 'pandemic',
+                                     'paralysis', 'parasites', 'parkinsons', 'patient', 'patients', 'pertussis',
+                                     'pharmaceutical', 'pharmaceuticals', 'pharmacies', 'pharmacist', 'pharmacists',
+                                     'pharmacy', 'phd', 'physician', 'placebo', 'placebos', 'plague', 'pneumonia',
+                                     'polioviruses', 'practitioners', 'psychology', 'publichealth', 'publicsafety', 'rabies',
+                                     'rotavirus', 'rubella', 'saline', 'seasonalflu', 'sepsis', 'shills', 'shot', 'shots',
+                                     'sick', 'spinalcord', 'sterilization', 'surgeries', 'surgery', 'symptoms', 'syndrome',
+                                     'tetanus', 'theautismbook', 'treatments', 'unvaccinated', 'viral', 'viruses', 'vitamin',
+                                     'vitamind', 'wellness', 'whs2018', 'womenshealth', 'zika', 'abnormal', 'aborted',
+                                     'airborne', 'chronic', 'condition', 'conditions', 'gardasil', 'health', 'healthcare',
+                                     'healthcareprovider', 'healthy', 'ill', 'illness', 'intestinal', 'jab', 'jabs', 'life',
+                                     'respiratory', 'screening', 'transmission', 'contaminated', 'drug', 'outbreak',
+                                     'reaction', 'virulence', 'death', 'dies', 'dying', 'fda', 'free flu shot', 'get vaccine',
+                                     'get your vaccine', 'shot clinic', 'research'),
+                          Fear = c('warning', 'warns', 'mainstream media', 'media', 'news', 'victim', 'victims', 'babies',
+                                   'baby', 'family', 'stoppoisoningourchildren', 'fear', 'safe', 'safety', 'safetystudy',
+                                   'anxiety', 'vulnerable', 'mongering', 'stop_the_spread', 'grief', 'grieving', 'lifelong',
+                                   'vaccine injury', 'vaccinedamage', 'vaccinedangers', 'vaccinedisabledchild',
+                                   'vaccineinducedbraininjury', 'vaccineinjured', 'vaccineinjury', 'vaccineinjuryawareness',
+                                   'vaccinekill', 'vaccinereactionsarereal', 'vaccinesareafraud', 'vaccinesarepoison',
+                                   'vaccinescauseautism', 'vaccinesharm', 'vaccineskill', 'braindamage', 'braininflammation')))
+
+
+```
+
+
+## 2.c. ## Apply Dictionaries & Merge
+```{r}
+##################### MERGE CORPSE & DICT
+#attach dict to corpus
+head(dfm(fullVac_corpus, dictionary = dict2))
+
+#create dfm object
+dictCount2 <- dfm(fullVac_corpus, dictionary = dict2)
+
+#convert dfm to dataframe, column to doc_id
+dictCount2.df <- data.frame(dictCount2)
+colnames(dictCount2.df)[colnames(dictCount2.df)=="document"] <- "doc_id"
+
+#change document IDs
+dictCount2.df$doc_id <-gsub("text","tweet",dictCount2.df$doc_id)
+fullVac$doc_id <-gsub("groupings.csv.","tweet",fullVac$doc_id)
+
+#MERGE
+dictVac2 <- join(fullVac,dictCount2.df,by="doc_id",type="inner")
+
+
+#write to excel
+#library(openxlsx)
+#write.xlsx(dictVac2, '~/Desktop/Fall 2018/Text Scrap/Anti Vac/', sheetName = "Sheet1",
+          #col.names = TRUE, row.names = TRUE, append = FALSE)
+```
+
+
+#3. Exploratory Data Analysis
+## 3.a. Graphing Percentages of Dictionaries in Groups
+
+```{r}
+library(readxl)
+dictUser <- read_excel("~/Desktop/Fall 2018/Text Scrap/Anti Vac/DICTGraphing.xlsx")
+colnames(dictUser)[colnames(dictUser)=="Perc"] <- "Percent"
+dictUser <- dictUser[order(dictUser$Percent), ] #sort
+dictUser <- dictUser[order(dictUser$Category), ] #sort
+
+brks <- seq(-100, 100, 20)
+lbls = paste0(as.character(c(seq(100, 0, -20), seq(20, 100, 20))), "%")
+
+
+ggplot(dictUser, aes(x = reorder(Category, Percent), y = Percent, fill = User)) +   # Fill column
+                              geom_bar(stat = "identity", width = .6) +   # draw the bars
+                             # scale_y_continuous(breaks = brks,   # Breaks
+                               #                  labels = lbls) + # Labels
+                              coord_flip() +  # Flip axes
+                              labs(title="Dictionary Comparison by User") +
+                              labs(x='Dictionary Category')
+                              theme(plot.title = element_text(hjust = .5), 
+                                    axis.ticks = element_blank())    # Centre plot t  # Color palette
+```
+
+
+#4. User Focused Logistic Regression
+
+## 4.a. Variable Definitions
+
+```{r}
+#Review user groupings
+table(dictVac2$user_grouping)
+
+#Define variables
+side <- as.factor(dictVac2$user_grouping)
+Communication <- dictVac2$Communication
+Conspiracy <- dictVac2$Conspiracy
+Danger <- dictVac2$Danger
+Government <- dictVac2$Government
+Death <- dictVac2$Death
+Family <- dictVac2$Family
+Affect <- dictVac2$Affect
+Choice <- dictVac2$Choice
+Promotion <- dictVac2$Promotion
+Awareness <- dictVac2$Awareness
+Trust <- dictVac2$Trust
+Research <- dictVac2$Research
+Health <- dictVac2$Health
+Fear <- dictVac2$Fear
+
+```
+
+## 4.b. GML Call & Summary
+
+```{r}
+library(stargazer)
+#Create GLM Call
+glm2 = glm(side~ Communication + Conspiracy + Danger + Government + Death + Family + Affect + Choice + Promotion + Awareness + Trust + Research +Health+ Fear, data = dictVac2, family = binomial)
+
+#Summary
+summary(glm2)
+
+#Exp log-odds --> odds
+glm2exp <- exp(coef(glm2))
+
+#Use stargazer package to visualize
+stargazer(glm2exp, type="text", out="glm2.htm")
+
+
+#Example Interpretations:
+#conspiracy:
+exp(-1.26)
+#= 0.2836
+
+#So when we increase conspiracy by one unit, the odds of Positive are multiplied by 0.28 (~cut in third)
+```
+
+
+#5. Tweet Focused Multinomial Regression
+## 5.a. Variable Definitions
+
+```{r}
+#Review neutral groupings
+table(dictVac2$tweet_grouping)
+
+#Define variables
+tweetSide <- as.factor(dictVac2$tweet_grouping)
+Communication <- dictVac2$Communication
+Conspiracy <- dictVac2$Conspiracy
+Danger <- dictVac2$Danger
+Government <- dictVac2$Government
+Death <- dictVac2$Death
+Family <- dictVac2$Family
+Affect <- dictVac2$Affect
+Choice <- dictVac2$Choice
+Promotion <- dictVac2$Promotion
+Awareness <- dictVac2$Awareness
+Trust <- dictVac2$Trust
+Research <- dictVac2$Research
+Health <- dictVac2$Health
+Fear <- dictVac2$Fear
+
+```
+
+## 5.b. Multinom Log Reg Call & Summary
+
+```{r}
+library(foreign)
+library(nnet)
+
+#Make multinom logReg call
+multi1 = multinom(tweetSide ~ Communication + Conspiracy + Danger + Government + Death + Family + Affect + Choice + Promotion + Awareness + Trust + Research +Health+ Fear, data = dictVac2)
+
+#Summary
+summary(multi1)
+
+#Exp coefs --> odds
+expMulti1 <- exp(coef(multi1))
+
+#use stargazer for visualization
+stargazer(expMulti1, type="text", out="multi1.htm")
+```
